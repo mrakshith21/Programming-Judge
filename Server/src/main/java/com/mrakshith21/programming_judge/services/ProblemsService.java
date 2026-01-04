@@ -3,6 +3,8 @@ package com.mrakshith21.programming_judge.services;
 import com.mrakshith21.programming_judge.models.Problem;
 import com.mrakshith21.programming_judge.repositories.ProblemRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -16,6 +18,10 @@ public class ProblemsService {
 
     public List<Problem> getAllProblems() {
         return problemRepository.findAll();
+    }
+
+    public Page<Problem> getAllProblems(Pageable pageable) {
+        return problemRepository.findAll(pageable);
     }
 
     public Optional<Problem> getProblemById(Long id) {

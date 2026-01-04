@@ -7,6 +7,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -26,6 +28,9 @@ public class SubmissionsService {
     private SubmissionRepository submissionRepository;
 
     @Autowired
+    private ProblemsService problemsService;
+
+    @Autowired
     private RabbitTemplate rabbitTemplate;
 
     @Value("${rabbitmq.submission.exchangeName}")
@@ -41,13 +46,32 @@ public class SubmissionsService {
         return submissionRepository.findAll();
     }
 
+    public Page<Submission> getAllSubmissions(Pageable pageable) {
+        return submissionRepository.findAll(pageable);
+    }
+
     public Optional<Submission> getSubmissionById(Long id) {
         return submissionRepository.findById(id);
+    }
+
+    public String getSubmissionCode(Long id) throws IOException {
+        Path path = Paths.get(submissionsPath).resolve(id.toString());
+        if (Files.exists(path)) {
+            return Files.readString(path);
+        }
+        throw new RuntimeException("Submission code not found");
     }
 
     public Submission createSubmission(Submission submission, MultipartFile file) throws IOException {
         submission.setSubmitted(new Date());
         submission.setVerdict("Not Started");
+
+        // Fetch problem limits
+        problemsService.getProblemById(submission.getProblemId()).ifPresent(problem -> {
+            submission.setTimeLimit(problem.getTimeLimit());
+            submission.setMemoryLimit(problem.getMemoryLimit());
+        });
+
         Submission savedSubmission = submissionRepository.save(submission);
 
         Path root = Paths.get(submissionsPath);

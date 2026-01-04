@@ -20,9 +20,14 @@ for input_file in /testcases/input/input*.txt; do
         exit 1
     fi
 
-    java Solution < "$input_file" > "actual_$id.txt" 2> "stderr_$id.txt"
+    timeout --signal=SIGTERM "${TIME_LIMIT}s" java Solution < "$input_file" > "actual_$id.txt" 2> "stderr_$id.txt"
     EXIT_CODE=$?
     
+    if [ $EXIT_CODE -eq 124 ]; then
+        echo "Time Limit Exceeded"
+        exit 0
+    fi
+
     if [ $EXIT_CODE -ne 0 ]; then
         echo "Runtime error on test $id"
         exit 0

@@ -10,8 +10,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/moby/moby/api/types/container"
-	"github.com/moby/moby/client"
+	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/client"
 )
 
 func EvaluateSubmission(cli *client.Client, sub Submission) string {
@@ -36,22 +37,26 @@ func EvaluateSubmission(cli *client.Client, sub Submission) string {
 		return fmt.Sprintf("Failed to get absolute path for storage: %v", err)
 	}
 
-	// Create container with bind mount
-	resp, err := cli.ContainerCreate(ctx, client.ContainerCreateOptions{
-		Config: &container.Config{
-			Image: imageName,
-			Tty:   false,
+	// Create container with bind mount and resource limits
+	resp, err := cli.ContainerCreate(ctx, &container.Config{
+		Image: imageName,
+		Tty:   false,
+		Env: []string{
+			fmt.Sprintf("TIME_LIMIT=%f", sub.TimeLimit),
 		},
-		HostConfig: &container.HostConfig{
-			Binds: []string{
-				fmt.Sprintf("%s:/testcases:ro", storagePath),
-			},
+	}, &container.HostConfig{
+		Binds: []string{
+			fmt.Sprintf("%s:/testcases:ro", storagePath),
 		},
-	})
+		Resources: container.Resources{
+			Memory:     int64(sub.MemoryLimit) * 1024 * 1024,
+			MemorySwap: int64(sub.MemoryLimit) * 1024 * 1024,
+		},
+	}, nil, nil, "")
 	if err != nil {
 		return fmt.Sprintf("Failed to create container: %v", err)
 	}
-	defer cli.ContainerRemove(ctx, resp.ID, client.ContainerRemoveOptions{Force: true})
+	defer cli.ContainerRemove(ctx, resp.ID, types.ContainerRemoveOptions{Force: true})
 
 	// Read code from storage
 	submissionFilePath := filepath.Join("..", "Storage", "submissions", fmt.Sprintf("%d", sub.SubmissionID))
@@ -70,24 +75,28 @@ func EvaluateSubmission(cli *client.Client, sub Submission) string {
 	}
 
 	// Start container
-	if _, err := cli.ContainerStart(ctx, resp.ID, client.ContainerStartOptions{}); err != nil {
+	if err := cli.ContainerStart(ctx, resp.ID, types.ContainerStartOptions{}); err != nil {
 		return fmt.Sprintf("Failed to start container: %v", err)
 	}
 
 	// Wait for container to finish
-	waitRes := cli.ContainerWait(ctx, resp.ID, client.ContainerWaitOptions{
-		Condition: container.WaitConditionNotRunning,
-	})
+	statusCh, errCh := cli.ContainerWait(ctx, resp.ID, container.WaitConditionNotRunning)
 	select {
-	case err := <-waitRes.Error:
+	case err := <-errCh:
 		if err != nil {
 			return fmt.Sprintf("Error waiting for container: %v", err)
 		}
-	case <-waitRes.Result:
+	case <-statusCh:
+	}
+
+	// Check if container was OOM killed
+	inspect, err := cli.ContainerInspect(ctx, resp.ID)
+	if err == nil && inspect.State.OOMKilled {
+		return "Memory Limit Exceeded"
 	}
 
 	// Get logs to see the result from entrypoint script
-	out, err := cli.ContainerLogs(ctx, resp.ID, client.ContainerLogsOptions{ShowStdout: true, ShowStderr: true})
+	out, err := cli.ContainerLogs(ctx, resp.ID, types.ContainerLogsOptions{ShowStdout: true, ShowStderr: true})
 	if err != nil {
 		return fmt.Sprintf("Failed to get logs: %v", err)
 	}
@@ -119,10 +128,7 @@ func copyFilesToContainer(ctx context.Context, cli *client.Client, containerID s
 	}
 	tw.Close()
 
-	_, err := cli.CopyToContainer(ctx, containerID, client.CopyToContainerOptions{
-		DestinationPath: "/app",
-		Content:         &buf,
-	})
+	err := cli.CopyToContainer(ctx, containerID, "/app", &buf, types.CopyToContainerOptions{})
 	return err
 }
 

@@ -29,5 +29,9 @@ public class Submission implements Serializable {
 
     private Date submitted;
 
+    private Double timeLimit;
+
+    private Integer memoryLimit;
+
     private String verdict;
 }

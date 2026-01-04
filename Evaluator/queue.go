@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"log"
 
-	"github.com/moby/moby/client"
+	"github.com/docker/docker/client"
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 

@@ -2,16 +2,35 @@
 
 An application to post, solve and judge programming problems.
 
+## Architecture
+
+```mermaid
+graph TD
+    User[User] -->|Interacts| Frontend[Frontend - React]
+    Frontend -->|REST API| Server[Server - Spring Boot]
+    Server -->|Stores Data| DB[(PostgreSQL)]
+    Server -->|Queues Submissions| MQ[RabbitMQ]
+    Server -->|Stores Files| Storage[Shared Storage]
+    Evaluator[Evaluator - Go] -->|Listens| MQ
+    Evaluator -->|Reads/Writes| DB
+    Evaluator -->|Reads Files| Storage
+    Evaluator -->|Executes Code| Docker[Docker Containers]
+```
+
 ## Components
 
-### Server
+### [Server](Server/README.md)
+A Spring Boot web server that provides REST APIs for user management, problem creation, and submission handling. It integrates with PostgreSQL for data persistence and RabbitMQ for asynchronous task processing.
 
-A web server with APIs.
+### [Evaluator](Evaluator/README.md)
+A Go-based service that consumes submissions from RabbitMQ, executes them within isolated Docker containers, and evaluates them against test cases.
 
-### Evaluator
+### [Frontend](frontend/README.md)
+A React-based web application that allows users to browse problems, submit solutions using a code editor (Monaco), and view real-time results.
 
-A server that evaluates submissions by running the code against the problem inputs.
+### [Storage](Storage/README.md)
+A shared file system storage that holds problem test cases (inputs and outputs) and user submission source code. It is accessed by both the Server (for writing submissions) and the Evaluator (for reading test cases and code).
 
-### Frontend
+## Demo
 
-A frontend for viewing, adding problems and submitting solutions.
+[![Demo Video](https://img.shields.io/badge/Demo-Video-red)](./demo.mp4)

@@ -4,7 +4,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/moby/moby/client"
+	"github.com/docker/docker/client"
 )
 
 // Submission matches the Java model in the Server project
@@ -14,6 +14,8 @@ type Submission struct {
 	Username     string    `json:"username"`
 	Language     string    `json:"language"`
 	Submitted    time.Time `json:"submitted"`
+	TimeLimit    float64   `json:"timeLimit"`
+	MemoryLimit  int       `json:"memoryLimit"`
 	Verdict      string    `json:"verdict"`
 }
 
@@ -25,7 +27,7 @@ func main() {
 	log.Println("Connected to database")
 
 	// Initialize Docker Client
-	cli, err := client.New(client.FromEnv)
+	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	if err != nil {
 		log.Fatalf("Failed to create Docker client: %v", err)
 	}

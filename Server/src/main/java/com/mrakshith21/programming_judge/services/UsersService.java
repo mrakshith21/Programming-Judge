@@ -3,6 +3,7 @@ package com.mrakshith21.programming_judge.services;
 import com.mrakshith21.programming_judge.models.User;
 import com.mrakshith21.programming_judge.repositories.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -14,6 +15,9 @@ public class UsersService {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
     public List<User> getAllUsers() {
         return userRepository.findAll();
     }
@@ -23,12 +27,15 @@ public class UsersService {
     }
 
     public User createUser(User user) {
+        user.setPassword(passwordEncoder.encode(user.getPassword()));
         return userRepository.save(user);
     }
 
     public User updateUser(String username, User userDetails) {
         User user = userRepository.findById(username).orElseThrow(() -> new RuntimeException("User not found"));
-        user.setPassword(userDetails.getPassword());
+        if (userDetails.getPassword() != null && !userDetails.getPassword().isEmpty()) {
+            user.setPassword(passwordEncoder.encode(userDetails.getPassword()));
+        }
         return userRepository.save(user);
     }
 }

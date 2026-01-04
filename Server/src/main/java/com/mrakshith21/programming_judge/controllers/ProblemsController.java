@@ -3,10 +3,12 @@ package com.mrakshith21.programming_judge.controllers;
 import com.mrakshith21.programming_judge.models.Problem;
 import com.mrakshith21.programming_judge.services.ProblemsService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/problems")
@@ -16,8 +18,9 @@ public class ProblemsController {
     private ProblemsService problemsService;
 
     @GetMapping
-    public List<Problem> getAllProblems() {
-        return problemsService.getAllProblems();
+    public Page<Problem> getAllProblems(
+            @PageableDefault(size = 10) Pageable pageable) {
+        return problemsService.getAllProblems(pageable);
     }
 
     @GetMapping("/{id}")
