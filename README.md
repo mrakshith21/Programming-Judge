@@ -34,3 +34,19 @@ A shared file system storage that holds problem test cases (inputs and outputs) 
 ## Demo
 
 [![Demo Video](https://img.shields.io/badge/Demo-Video-red)](./demo.mp4)
+
+
+## Why I built this project
+
+This project is a remake of my IEEE project at NITK [link here](https://github.com/Programming-Judge).
+I felt that I did not contribute much in that project apart from a few things in the frontend.  
+This project is a great way to understand concepts across domains like:
+1. REST APIs
+2. Containerization with Docker
+3. Job Queues like RabbitMQ
+4. Frontend development
+
+Furthermore, the original project did not use a job queue and I wanted to have a peek into how using them would look like.
+
+I have used Github copilot to code most of this project, but I learnt many concepts along the way.
+
